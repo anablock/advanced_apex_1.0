@@ -17,3 +17,19 @@ all files.
 For an in-depth explanation of this project, refer to the 4th edition of the book Advanced Apex Programming
 
 ## Issues
+
+
+## =============================================
+* triggers can receive up to 200 objects at once
+* SOQL queries and DML statements should not be inside of loops
+* Apex code should be designed to handle bulk operations
+
+* Why test?
+    * Does the code work
+    * Code coverage
+    * Handling invalid input
+
+One common design pattern is to create utility functions that can be shared by multiple test classes or methods.
+
+## Example on how to use utility functions
+in the following example, there are two utility functions.  The first one, `TestBulkPatterns.InitTestObjects`, sets up test scenarios based on some parameters.  The `newopportunities` parameter references a list that is initialized by this function with the new opportunities.  `NumberOfOtherOpportunities` specifies 
