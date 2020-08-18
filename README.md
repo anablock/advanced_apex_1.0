@@ -147,5 +147,168 @@ public class Races extends fflib_SObjectDomain
     {
         super(races);
     }
+
+    public class Constructor implements fflib_SObjectDomain.IConstructable
+    {
+
+    }
+}
+```
+
+## Implementing Domain Trigger Logic
+The most common initial use case for a Domain class is to encapsulate the Apex trigger logic.  Apex trigger invokes the `triggerHandler` method.  This will route the various Trigger events to the appropriate methods in the Domain class, avoding the need for if/else logic around `Trigger.isXXXX` variables.
+
+```java
+trigger Seasons on Seasone__c (
+    after delete, after insert, after update,
+    before delete, before insert, before update
+) {
+    fflib_SObjectDomain.triggerHandler(Season.class);
+}
+```
+
+## System.assertEquals()
+This assert statement is only used in test classes.  Every test class should have at least one `System.assertEquals()`.
+
+`System.assetEquals(input1, input2, input3);`
+
+* input1(expected value) and input2(actual value) are required
+* input3(error message) is optional - The message to display if the actual value != expected value
+* user SOQL to get the most up-to-date info on records
+* `size()` can only be used on the `List` data type
+
+```java
+@IsTest
+private class NewStatusTest {
+    static testMethod void CreateLead() {
+        Lead myLead         = new Lead();
+        myLead.FirstName    = 'Jon';
+        myLead.LastName     = 'Snow';
+        myLead.Company      = 'Winter Hotels';
+        insert myLead;
+
+        Lead latestLead = [SELECT Status
+                            FROM Lead
+                            WHERE Id = :myLead.Id];
+
+        System.assertEquals(
+            'New',
+            latestLead.Status
+        );
+    }
+}
+```
+
+```java
+@IsTest
+private class NewStatusTest {
+    static testMethod void CreateLead() {
+        String leadOwner = userInfo.getUserId();
+        
+        // Create all required records
+        Lead myLead         = new Lead();
+        myLead.FirstName    = 'Jon';
+        myLead.LastName     = 'Snow';
+        myLead.Company      = 'Winter Hotels';
+        myLead.Email        = 'vuk+lead@anablock.com';
+        myLead.Description  = 'Testing dedupe trigger...';
+        myLead.OwnerId      = leadOwner;
+        insert myLead;
+
+        // Use SOQL to find the latest values
+        Lead updatedLead = [SELECT OwnerId,
+                                  Description  
+                            FROM  Lead
+                            WHERE Id = :myLead.Id];
+
+        // Assert that the results are expected
+        System.assertEquals(leadOwner, updatedLead.OwnerId);
+        System.assertEquals(myLead.Description, updatedLead.Description);
+    }
+}
+```
+
+```java
+@isTest
+private class ComparableOppsTest {
+
+    @isTest static void noComparableOpps() {
+        // Create Account record
+        Account acc = new Account();
+        acc.Name        = 'Winterfall';
+        acc.Industry    = 'Industry';
+        insert acc;
+
+        // Create Opp record
+        Opportunity opp = new Opportunity();
+        opp.Name        = 'Winterfall';
+        opp.AccountId   = acc.Id;
+        opp.Amount      = 100;
+        opp.StageName   = 'Prospecting';
+        opp.CloseDate   = Date.today();
+        insert opp;
+
+        // Query latest values
+        Comparable__c comparables = [SELECT Id
+                                       FROM Comparable__c
+                                      WHERE Base_Opportunity__c = :opp.Id];
+
+        // Assert
+        System.assertEquals(0, comparables.size());
+    }
+
+    @isTest static void multipleComparableOpps() {
+        // Create comparable records
+        Account acc = new Account();
+        acc.Name        = 'Winterfall';
+        acc.Industry    = 'Industry';
+        insert acc;
+
+        List<Opportunity> comparablesOpps = new List<Opportunity>();
+        Opportunity comp1   = new Opportunity();
+        opp.Name            = 'Winterfall';
+        opp.AccountId       = acc.Id;
+        opp.Amount          = 105;
+        opp.StageName       = 'Closed Won';
+        opp.CloseDate       = Date.today().addDay(-1);
+        comparableOpps.add(comp1);
+
+        Opportunity comp2   = new Opportunity();
+        opp.Name            = 'Winterfall';
+        opp.AccountId       = acc.Id;
+        opp.Amount          = 95;
+        opp.StageName       = 'Closed Won';
+        opp.CloseDate       = Date.today().addDay(-100);
+        comparableOpps.add(comp2);
+        insert comparableOpps;
+
+        Opportunity baseOpp   = new Opportunity();
+        opp.Name            = 'Winterfall';
+        opp.AccountId       = acc.Id;
+        opp.Amount          = 100;
+        opp.StageName       = 'Prospecting';
+        opp.CloseDate       = Date.today();
+        insert baseOpp;
+
+        // Get latest values
+        List<Comparable__c> comparables = [SELECT Id,
+                                                  Comparable_Opportunity__c
+                                             FROM Comparable__c
+                                            WHERE Base_Opportunity__c = :baseOpp.Id
+                                            ORDER BY Comparable_Opportunity__r.CloseDate DESC];
+
+        // Make assertions
+        System.assertEquals(comp1.Id, comparables.get(0).Comparable_Opportunity__c);
+        System.assertEquals(comp1.Id, comparables.get(1).Comparable_Opportunity__c);    
+    }
+}
+```
+
+```java
+trigger MaxCases on Case (before insert) {
+
+    for (Case myCase : Trigger.new) {
+        if (myCase.ContactId)
+    }
 }
 ```
